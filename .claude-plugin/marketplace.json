@@ -1,0 +1,11 @@
+{
+  "name": "feed-digest",
+  "owner": { "name": "omril321" },
+  "plugins": [
+    {
+      "name": "feed-digest",
+      "source": "./",
+      "description": "Fetch updates from sources you follow, filter by relevance, render a styled HTML digest."
+    }
+  ]
+}

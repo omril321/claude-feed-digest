@@ -1,0 +1,9 @@
+{
+  "name": "feed-digest",
+  "version": "0.1.0",
+  "description": "Fetch updates from sources you follow (changelogs, RSS, and more), filter by personal relevance, and render a styled HTML digest in the browser.",
+  "author": { "name": "omril321", "email": "omril321@gmail.com" },
+  "repository": "https://github.com/omril321/claude-feed-digest",
+  "license": "MIT",
+  "keywords": ["changelog", "digest", "newsletter", "release-notes", "feed"]
+}

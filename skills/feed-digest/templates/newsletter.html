@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog Feed — {{date}}</title>
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:             #0f1117;
+      --bg-surface:     #161b22;
+      --bg-surface-2:   #1c2128;
+      --bg-code:        #161b22;
+      --border:         #30363d;
+      --border-subtle:  #21262d;
+
+      --text:           #e6edf3;   /* ~13:1 contrast — AAA */
+      --text-secondary: #8b949e;   /* ~4.6:1 — AA */
+      --text-muted:     #6e7681;   /* use only for large/bold UI chrome */
+
+      --new:            #3fb950;
+      --new-bg:         #0d2e1a;
+      --new-border:     #196e2e;
+      --improved:       #58a6ff;
+      --improved-bg:    #0d1e33;
+      --improved-border:#1a407a;
+      --fix:            #d29922;
+      --fix-bg:         #2d1f05;
+      --fix-border:     #6e4a0a;
+      --error:          #f85149;
+
+      --link:           #58a6ff;
+      --link-visited:   #a371f7;
+      --version-bg:     #21262d;
+
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-16: 64px;
+
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+    }
+
+    /* ── Reset ───────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Base typography ─────────────────────────────────────────── */
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      padding: var(--space-8) var(--space-4);
+    }
+
+    h1, h2, h3, h4 { text-wrap: balance; line-height: 1.3; }
+    p, li { text-wrap: pretty; overflow-wrap: break-word; }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    .container { max-width: 740px; margin: 0 auto; }
+
+    /* ── Page header ─────────────────────────────────────────────── */
+    .page-header {
+      padding-bottom: var(--space-6);
+      margin-bottom: var(--space-8);
+      border-bottom: 1px solid var(--border);
+    }
+    .page-header__title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-2);
+    }
+    .page-header__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* ── Filter summary ──────────────────────────────────────────── */
+    .filter-summary {
+      margin-bottom: var(--space-6);
+    }
+    .filter-summary__toggle {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      cursor: pointer;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      user-select: none;
+      width: fit-content;
+    }
+    .filter-summary__toggle::-webkit-details-marker { display: none; }
+    .filter-summary__toggle::marker { display: none; }
+    .filter-summary__toggle::after {
+      content: "▸";
+      font-size: 0.625rem;
+      transition: transform 0.15s ease;
+    }
+    .filter-summary[open] > .filter-summary__toggle::after { transform: rotate(90deg); }
+    .filter-summary__toggle:hover { color: var(--text-secondary); }
+
+    .filter-summary__count {
+      background: var(--version-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 0 var(--space-2);
+      font-size: 0.6875rem;
+    }
+    .filter-summary__list {
+      list-style: none;
+      margin-top: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .filter-item {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .filter-item::before {
+      content: "✕ ";
+      color: var(--text-muted);
+      font-size: 0.625rem;
+    }
+
+    /* ── Historical banner ───────────────────────────────────────── */
+    .historical-banner {
+      background: var(--fix-bg);
+      border: 1px solid var(--fix-border);
+      color: var(--fix);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      font-size: 0.875rem;
+      margin-bottom: var(--space-6);
+    }
+
+    /* ── Tool section ────────────────────────────────────────────── */
+    .tool-section {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-8);
+      overflow: hidden;
+    }
+    .tool-section--error { border-color: var(--error); }
+
+    .tool-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-5);
+      background: var(--bg-surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .tool-name {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      flex: 1;
+    }
+    .tool-version-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .tool-versions {
+      font-size: 0.75rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      color: var(--text-secondary);
+      background: var(--version-bg);
+      border: 1px solid var(--border);
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+    }
+    .tool-date {
+      font-size: 0.6875rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      color: var(--text-muted);
+    }
+    .tool-count {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .tool-error  { color: var(--error); font-size: 0.8125rem; }
+    .error-detail { padding: var(--space-3) var(--space-5); color: var(--error); font-size: 0.875rem; }
+
+    /* ── Topic ───────────────────────────────────────────────────── */
+    .topic {
+      padding: var(--space-5) var(--space-5) 0;
+    }
+    .topic:last-of-type { padding-bottom: var(--space-5); }
+
+    .topic__title {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: var(--space-3);
+    }
+
+    /* ── Type groups (collapsible) ───────────────────────────────── */
+    .type-group {
+      margin-bottom: var(--space-2);
+    }
+    .type-group[open] { margin-bottom: var(--space-3); }
+
+    .type-group__summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      cursor: pointer;
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      user-select: none;
+      width: fit-content;
+    }
+    .type-group__summary::-webkit-details-marker { display: none; }
+    .type-group__summary::marker { display: none; }
+    .type-group__summary:hover { background: var(--bg-surface-2); }
+
+    .type-group__label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .type-group__count {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+    /* Collapse indicator */
+    .type-group__summary::after {
+      content: "▸";
+      font-size: 0.625rem;
+      color: var(--text-muted);
+      transition: transform 0.15s ease;
+      margin-left: var(--space-1);
+    }
+    .type-group[open] > .type-group__summary::after { transform: rotate(90deg); }
+
+    .type-group__summary--new      .type-group__label { color: var(--new); }
+    .type-group__summary--improved .type-group__label { color: var(--improved); }
+    .type-group__summary--fix      .type-group__label { color: var(--fix); }
+
+    /* ── Items list ──────────────────────────────────────────────── */
+    .items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: var(--space-1) 0 var(--space-2);
+    }
+
+    .item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      transition: background 0.1s;
+    }
+    .item:hover { background: var(--bg-surface-2); }
+
+    .item__text { flex: 1; }
+
+    .item__version {
+      font-size: 0.6875rem;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      color: var(--text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Links ───────────────────────────────────────────────────── */
+    a, .item__link {
+      color: var(--link);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+      text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent);
+      transition: text-decoration-color 0.15s;
+    }
+    a:hover, .item__link:hover {
+      text-decoration-color: var(--link);
+    }
+    a:visited { color: var(--link-visited); }
+
+    .item__link {
+      font-size: 0.75rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: var(--space-1);
+    }
+
+    /* ── Filtered / excluded section ─────────────────────────────── */
+    .excluded-section {
+      padding: var(--space-3) var(--space-5) var(--space-4);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .excluded-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 3px var(--space-3);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .excluded-toggle:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+
+    .excluded-list {
+      display: none;
+      list-style: none;
+      margin-top: var(--space-2);
+      flex-direction: column;
+      gap: 2px;
+    }
+    .excluded-list.open { display: flex; }
+
+    .excluded-item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-3);
+      padding: var(--space-1) var(--space-2);
+      font-size: 0.8125rem;
+      opacity: 0.55;
+    }
+    .excluded-item__version {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .excluded-item__text { flex: 1; color: var(--text-secondary); }
+    .excluded-item__reason {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      font-style: italic;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Mark as read bar ────────────────────────────────────────── */
+    .mark-read-bar {
+      margin-top: var(--space-8);
+      padding: var(--space-5);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+    .mark-read-bar__label { color: var(--text-secondary); font-size: 0.875rem; }
+
+    .mark-read-btn {
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-5);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    .mark-read-btn:hover:not(:disabled) { background: #2ea043; }
+    .mark-read-btn:disabled { opacity: 0.6; cursor: default; }
+    .mark-read-btn--done { background: #1f6feb; }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    .page-footer {
+      margin-top: var(--space-6);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="page-header">
+      <h1 class="page-header__title">Changelog Feed</h1>
+      <div class="page-header__meta">
+        <span>{{date}}</span>
+        <span>{{itemCount}} items</span>
+        <span>~{{readTime}} min read</span>
+      </div>
+    </header>
+
+    {{historicalBanner}}
+    {{filterSummary}}
+
+    {{toolSections}}
+
+    <div class="mark-read-bar" id="mark-read-bar" style="{{markReadBarStyle}}">
+      <span class="mark-read-bar__label">Done reading? Mark all versions as read so next run shows only new entries.</span>
+      <button class="mark-read-btn" id="mark-read-btn" onclick="markAsRead()">Mark as Read</button>
+    </div>
+
+    <footer class="page-footer">
+      Generated at {{generatedAt}}
+    </footer>
+
+  </div>
+
+  <script>
+    function toggleExcluded(id) {
+      const list = document.getElementById(id);
+      const btn = list.previousElementSibling;
+      const isOpen = list.classList.toggle('open');
+      const count = list.querySelectorAll('.excluded-item').length;
+      btn.textContent = isOpen
+        ? `Hide filtered items ▴`
+        : `Show ${count} filtered item${count !== 1 ? 's' : ''} ▾`;
+    }
+
+    async function markAsRead() {
+      const btn = document.getElementById('mark-read-btn');
+      btn.disabled = true;
+      btn.textContent = 'Marking…';
+      try {
+        const res = await fetch('http://127.0.0.1:{{markReadPort}}/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ts: new Date().toISOString() }),
+        });
+        if (res.ok) {
+          btn.textContent = '✓ Marked as Read';
+          btn.className = 'mark-read-btn mark-read-btn--done';
+          document.querySelector('.mark-read-bar__label').textContent =
+            'All versions marked as read. Next run will show only new entries.';
+        } else {
+          btn.textContent = 'Error — try again';
+          btn.disabled = false;
+        }
+      } catch {
+        btn.textContent = '⚠ Server not responding (already marked, or expired)';
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
