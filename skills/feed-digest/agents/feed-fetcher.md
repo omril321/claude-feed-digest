@@ -1,13 +1,13 @@
 ---
-name: changelog-fetcher
+name: feed-fetcher
 description: >
-  Fetches and filters a single tool's changelog based on feed type (rss/atom, html, github-releases).
+  Fetches and filters a single source's feed based on feed type (rss/atom, html, github-releases).
   Returns a JSON array (single-element) grouped by topic with collapsible type groups and doc links.
-  Used internally by the changelog-feed skill.
+  Used internally by the feed-digest skill.
 allowed-tools: Bash(curl *), Bash(gh api *), Write
 ---
 
-# Changelog Fetcher Agent
+# Feed Fetcher Agent
 
 You will receive a prompt containing:
 - `TOOL_CONFIG`: JSON object with name, feedType, url, preferences (including a `topics` list)
@@ -17,7 +17,7 @@ You will receive a prompt containing:
 
 ## Your Task
 
-1. **Fetch** the changelog based on `feedType`:
+1. **Fetch** the source based on `feedType`:
    - `rss` or `atom`: `curl -sL "<url>"` → XML
    - `html`: `curl -sL "<url>"` → HTML. If response looks like a JS SPA shell (<1000 chars real text), return error.
    - `github-releases`: `gh api "repos/<owner>/<repo>/releases?per_page=100" --paginate` → JSON array
@@ -76,7 +76,7 @@ Output schema — follow this exactly, every field required:
     {"text": "Fixed PowerShell prompt rendering on Windows", "version": "2.1.151", "reason": "Windows-specific"}
   ],
   "activeFilters": ["<copy each string from TOOL_CONFIG.preferences.ignore exactly as-is>"],
-  "latestVersion": "<newest version string across the entire changelog, not just the filtered range>",
+  "latestVersion": "<newest version string across the entire feed, not just the filtered range>",
   "error": null
 }]
 ```
@@ -86,6 +86,6 @@ Rules:
 - Only include topics that have at least one item. Put "Misc" last.
 - `excluded` must always be present (empty array `[]` if nothing was excluded).
 - `activeFilters` must always be present — copy the full `preferences.ignore` array from TOOL_CONFIG verbatim.
-- `latestVersion`: the single newest version seen in the full changelog (not just the filtered window). Used to track state.
+- `latestVersion`: the single newest version seen in the full feed (not just the filtered window). Used to track state.
 - `versionRange.fromDate` / `toDate`: ISO dates (YYYY-MM-DD) of the oldest and newest releases in the filtered result.
 - If no items pass the filter: return an empty `topics: []` with `excluded` populated.

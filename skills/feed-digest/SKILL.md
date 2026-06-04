@@ -49,7 +49,7 @@ Compute `cutoffISO` for each tool **yourself** (do not delegate to subagents):
 
 ## Step 2: Fetch all tools in parallel
 
-For each enabled tool, dispatch one Agent using the agent definition at `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/changelog-fetcher.md`.
+For each enabled tool, dispatch one Agent using the agent definition at `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/feed-fetcher.md`.
 
 **Dispatch ALL agents in a single message** (one turn with multiple Agent tool calls) so they run in parallel. Do not dispatch them sequentially.
 
