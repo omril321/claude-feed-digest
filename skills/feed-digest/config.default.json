@@ -5,7 +5,6 @@
       "enabled": true,
       "feedType": "github-releases",
       "url": "anthropics/claude-code",
-      "rssUrl": "https://code.claude.com/docs/en/changelog/rss.xml",
       "maxFirstRunDays": 3,
       "preferences": {
         "platform": "mac",
@@ -13,85 +12,19 @@
           "new features",
           "performance improvements",
           "MCP and tool use",
-          "hooks and skills system",
-          "model changes",
           "agent capabilities"
         ],
         "ignore": [
-          "Windows or WSL specific — including any item that mentions PowerShell, Windows-only behavior, .exe, Windows paths, or WSL as the affected context, even if the item also mentions an otherwise-interesting feature like agents or MCP",
+          "Windows or WSL specific",
           "JetBrains plugin",
           "VSCode, Cursor, or Windsurf IDE-specific",
-          "items prefixed with [VSCode], [IDE], [JetBrains], or [Windows]",
-          "fast mode — items specifically about fast mode pricing, fast mode availability, or fast mode behavior"
-        ],
-        "topics": [
-          "MCP & Tools",
-          "Skills & Hooks",
-          "Agents",
-          "Models",
-          "Performance",
-          "UI/UX",
-          "Misc"
-        ]
-      }
-    }
-    ,
-    {
-      "name": "superset-desktop",
-      "enabled": true,
-      "feedType": "github-releases",
-      "url": "superset-sh/superset",
-      "tagPrefix": "desktop-v",
-      "maxFirstRunDays": 7,
-      "preferences": {
-        "platform": "mac",
-        "interests": [
-          "new features",
-          "performance improvements",
-          "MCP and tool use",
-          "agent capabilities",
-          "UI/UX improvements",
-          "bug fixes"
-        ],
-        "ignore": [
-          "CLI releases — only interested in desktop app changes",
-          "Windows-specific behavior or paths",
-          "items prefixed with [Windows] or [CLI]"
+          "fast mode"
         ],
         "topics": [
           "MCP & Tools",
           "Agents",
-          "UI/UX",
           "Performance",
-          "Bug Fixes",
-          "Misc"
-        ]
-      }
-    },
-    {
-      "name": "plannotator",
-      "enabled": true,
-      "feedType": "github-releases",
-      "url": "backnotprop/plannotator",
-      "maxFirstRunDays": 7,
-      "preferences": {
-        "platform": "mac",
-        "interests": [
-          "new features",
-          "plan annotation improvements",
-          "UI/UX improvements",
-          "performance improvements",
-          "bug fixes"
-        ],
-        "ignore": [
-          "Windows-specific behavior or paths",
-          "items prefixed with [Windows]"
-        ],
-        "topics": [
-          "Plan Annotation",
           "UI/UX",
-          "Performance",
-          "Bug Fixes",
           "Misc"
         ]
       }

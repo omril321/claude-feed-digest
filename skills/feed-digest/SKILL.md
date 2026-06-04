@@ -6,7 +6,7 @@ description: >
   are shown on each run. Use when user says /feed-digest, /changelog-feed, "check changelogs",
   "what's new in my tools", or "tool updates".
 invocation: user
-allowed-tools: Bash(curl *), Bash(gh api *), Bash(node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/*), Bash(node ~/.claude/skills/changelog-feed/scripts/*), Bash(open *), Read, Write, Agent
+allowed-tools: Bash(curl *), Bash(gh api *), Bash(node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/*), Bash(open *), Read, Write, Agent
 ---
 
 # Feed Digest
@@ -34,15 +34,10 @@ If no override detected, proceed normally (Step 1 onwards).
 
 ## Step 1: Load config and state
 
-Resolve paths based on how the skill is running:
-- **As a plugin**: config at `~/.claude/feed-digest/config.json`, state at `~/.claude/feed-digest/state/<tool>.json`
-- **Personal skill (dev mode)**: same paths — `~/.claude/feed-digest/` is the stable external data dir
-
 Read `~/.claude/feed-digest/config.json`. If the file does not exist, seed it first:
 ```bash
 mkdir -p ~/.claude/feed-digest && cp ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/config.default.json ~/.claude/feed-digest/config.json
 ```
-(If running as a personal skill before plugin-ification, copy from `~/.claude/skills/changelog-feed/config.default.json` instead.)
 
 For each enabled tool (`enabled: true`), read its state file at `~/.claude/feed-digest/state/<tool-name>.json`. If the file doesn't exist, this is a first run for that tool.
 
@@ -54,9 +49,7 @@ Compute `cutoffISO` for each tool **yourself** (do not delegate to subagents):
 
 ## Step 2: Fetch all tools in parallel
 
-For each enabled tool, dispatch one Agent using the agent definition at:
-- As plugin: `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/changelog-fetcher.md`
-- Personal skill: `~/.claude/skills/changelog-feed/agents/changelog-fetcher.md`
+For each enabled tool, dispatch one Agent using the agent definition at `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/changelog-fetcher.md`.
 
 **Dispatch ALL agents in a single message** (one turn with multiple Agent tool calls) so they run in parallel. Do not dispatch them sequentially.
 
@@ -95,10 +88,8 @@ If total items = 0 BUT some tools errored → proceed to render (error cards wil
 **Write** the merged results JSON array to `~/.claude/feed-digest/output/.feed-input-tmp.json` using the Write tool (do NOT use echo/bash — large JSON gets truncated in shell commands). Then pipe it to the render script:
 
 ```bash
-cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ~/.claude/skills/changelog-feed/scripts/render.mjs
+cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs
 ```
-
-(Once plugin-ified, replace the script path with `node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs`.)
 
 Note: the render script binds a local port for the mark-read server — this requires `dangerouslyDisableSandbox: true` on the bash command.
 
