@@ -91,15 +91,23 @@ Any tool with a GitHub repo, RSS feed, or HTML changelog page works. Example —
 
 ## How it works
 
-1. Reads your config, loads per-tool version state
-2. Spawns one subagent per source in parallel — each fetches and filters its feed
-3. Each entry is LLM-scored 0–10 for relevance against your `interests`/`ignore` lists; items scoring < 4 are excluded
-4. Results are grouped by topic and rendered into an HTML digest
-5. A local mark-read server runs for 2 hours — clicking "Mark as Read" persists your version cursor so the next run starts from where you left off
+feed-digest uses a **two-stage subagent pipeline** designed for reliability and low cost:
+
+### Stage 1 — Fetch (one agent per source, in parallel)
+
+Each source gets its own **fetcher agent** (Claude Sonnet, up to 8 turns). Its only job is to fetch the feed and filter for relevance — no schema pressure. It runs `curl` or `gh api`, scores each item 0–10 against your `interests`/`ignore` lists, excludes items scoring < 4, and returns loose JSON. Because it doesn't have to care about output structure, it can focus entirely on data quality.
+
+### Stage 2 — Format (one agent per result, in parallel)
+
+Each fetcher result is immediately handed to a **formatter agent** (Claude Haiku, 1 turn, no tools). Its only job is structural: convert the fetcher's loose output into the exact canonical schema the renderer expects. Single-shot, deterministic, cheap. Separating this concern means schema compliance doesn't compete with data collection.
+
+### Render
+
+The formatted results are merged and piped to a local Node.js renderer that produces the HTML digest and spawns a mark-read server (2-hour TTL). Clicking "Mark as Read" persists your version cursor — next run starts from there.
 
 ## Requirements
 
-- Claude Code with plugin support
+- Claude Code **v2.1.154 or later** (plugin support + subagent model selection)
 - `gh` CLI authenticated (for `github-releases` sources)
 - macOS (`open` is used to launch the HTML in your browser)
 

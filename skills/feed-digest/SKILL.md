@@ -47,37 +47,51 @@ Compute `cutoffISO` for each tool **yourself** (do not delegate to subagents):
 
 ---
 
-## Step 2: Fetch all tools in parallel
+## Step 2: Fetch all sources in parallel
 
 For each enabled tool, dispatch one Agent using the agent definition at `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/feed-fetcher.md`.
 
-**Dispatch ALL agents in a single message** (one turn with multiple Agent tool calls) so they run in parallel. Do not dispatch them sequentially.
+**Dispatch ALL fetcher agents in a single message** so they run in parallel.
 
-Each agent's prompt must include:
-
+Each fetcher prompt:
 ```
-TOOL_CONFIG: <paste the full JSON object for this tool from config.json>
-CUTOFF_ISO: <the cutoffISO you computed for this tool, e.g. "2026-05-25">
+TOOL_CONFIG: <full JSON object for this tool from config.json>
+CUTOFF_ISO: <cutoffISO for this tool>
 LAST_VERSION_SEEN: <lastVersionSeen from state file, or null if first run>
 
-For github-releases tools: filter by VERSION_FLOOR (entries newer than LAST_VERSION_SEEN using semver comparison). For rss/html tools: filter by CUTOFF_ISO date.
-
-Fetch and filter this tool's changelog following the instructions in your system prompt.
-Output ONLY the raw JSON array — no markdown fences, no explanation. Do NOT run scripts or open browsers.
+Fetch and filter this source following your instructions. Return raw JSON only — no markdown fences, no explanation.
 ```
+
+---
+
+## Step 2.5: Format all results in parallel
+
+For each fetcher result from Step 2, dispatch one Agent using `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/result-formatter.md`.
+
+**Dispatch ALL formatter agents in a single message** so they run in parallel.
+
+Each formatter prompt:
+```
+RAW: <paste the raw JSON object returned by the fetcher>
+ACTIVE_FILTERS: <paste the preferences.ignore array from this tool's TOOL_CONFIG>
+
+Convert to canonical schema following your instructions. Output ONLY the JSON array.
+```
+
+If a fetcher returned an error object (has `"error"` field set), still pass it to the formatter — it knows how to handle errors.
 
 ---
 
 ## Step 3: Validate and merge results
 
-Collect all agent results. For each result:
-1. Strip any markdown code fences (` ```json ... ``` `) if present — parse the JSON inside
-2. If result is not valid JSON, create: `{"tool": "<tool name>", "error": "invalid JSON response", "topics": [], "excluded": [], "latestVersion": null}`
+Collect all formatter results. For each result:
+1. Strip any markdown code fences if present — parse the JSON inside
+2. If result is not valid JSON: create `{"tool": "<tool name>", "error": "invalid JSON response", "topics": [], "excluded": [], "latestVersion": null}`
 3. Validate: result must have `tool`, `topics` (array), and `latestVersion` fields
 
 Count total items across all valid results (sum of all items in all topics).
 
-If total items = 0 AND no errors → print: **"All caught up! No new entries since last check."** and stop (do not open browser, do not update state).
+If total items = 0 AND no errors → print: **"All caught up! No new entries since last check."** and stop.
 
 If total items = 0 BUT some tools errored → proceed to render (error cards will show).
 
@@ -85,13 +99,13 @@ If total items = 0 BUT some tools errored → proceed to render (error cards wil
 
 ## Step 4: Render digest
 
-**Write** the merged results JSON array to `~/.claude/feed-digest/output/.feed-input-tmp.json` using the Write tool (do NOT use echo/bash — large JSON gets truncated in shell commands). Then pipe it to the render script:
+**Write** the merged results JSON array to `~/.claude/feed-digest/output/.feed-input-tmp.json` using the Write tool (do NOT use echo/bash — large JSON gets truncated in shell). Then pipe to the render script:
 
 ```bash
 cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs
 ```
 
-Note: the render script binds a local port for the mark-read server — this requires `dangerouslyDisableSandbox: true` on the bash command.
+Note: the render script binds a local port for the mark-read server — this requires `dangerouslyDisableSandbox: true`.
 
 The script writes to `~/.claude/feed-digest/output/feed-digest-YYYY-MM-DD.html` and opens it in the browser.
 
@@ -99,7 +113,7 @@ The script writes to `~/.claude/feed-digest/output/feed-digest-YYYY-MM-DD.html` 
 
 ## Step 5: State is handled by the digest
 
-**Do not write state files.** The render script spawns a background mark-read server. State is updated only when the user clicks **"Mark as Read"** in the digest. This ensures the user isn't marked as having read entries they never looked at.
+**Do not write state files.** The render script spawns a background mark-read server. State is updated only when the user clicks **"Mark as Read"** in the digest.
 
 Exception: if `HISTORICAL_MODE = true`, the mark-read button is hidden and state is never updated (by design).
 
