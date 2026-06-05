@@ -6,7 +6,7 @@ description: >
   are shown on each run. Use when user says /feed-digest, /changelog-feed, "check changelogs",
   "what's new in my tools", or "tool updates".
 invocation: user
-allowed-tools: Bash(curl *), Bash(gh api *), Bash(node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/*), Bash(open *), Read, Write, Agent
+allowed-tools: Bash(curl *), Bash(gh api *), Bash(cat *), Bash(node ~/.claude/skills/changelog-feed/scripts/render.mjs), Bash(node ~/.claude/skills/changelog-feed/scripts/render.mjs *), Bash(open *), Read, Write, Agent
 ---
 
 # Feed Digest
@@ -36,7 +36,7 @@ If no override detected, proceed normally (Step 1 onwards).
 
 Read `~/.claude/feed-digest/config.json`. If the file does not exist, seed it first:
 ```bash
-mkdir -p ~/.claude/feed-digest && cp ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/config.default.json ~/.claude/feed-digest/config.json
+mkdir -p ~/.claude/feed-digest && cp ~/.claude/skills/changelog-feed/config.default.json ~/.claude/feed-digest/config.json
 ```
 
 For each enabled tool (`enabled: true`), read its state file at `~/.claude/feed-digest/state/<tool-name>.json`. If the file doesn't exist, this is a first run for that tool.
@@ -49,78 +49,129 @@ Compute `cutoffISO` for each tool **yourself** (do not delegate to subagents):
 
 ## Step 2: Fetch all sources in parallel
 
-For each enabled tool, dispatch one Agent using the agent definition at `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/feed-fetcher.md`.
+Dispatch one Agent per enabled tool. **All agents in a single message** so they run in parallel.
 
-**Dispatch ALL fetcher agents in a single message** so they run in parallel.
+Each agent's prompt must be exactly this (fill in the values):
 
-Each fetcher prompt:
 ```
-TOOL_CONFIG: <full JSON object for this tool from config.json>
-CUTOFF_ISO: <cutoffISO for this tool>
-LAST_VERSION_SEEN: <lastVersionSeen from state file, or null if first run>
+You are a changelog fetcher. Your ONLY job: fetch release data and return a JSON object.
+You must NOT run node, render scripts, or open browsers. You must NOT call render.mjs or any script.
+Use ONLY curl and gh api commands. Your response MUST end with a raw JSON object — nothing else.
 
-Fetch and filter this source following your instructions. Return raw JSON only — no markdown fences, no explanation.
+TOOL_CONFIG: <full JSON object for this tool from config.json>
+CUTOFF_ISO: "<cutoffISO for this tool>"
+LAST_VERSION_SEEN: "<lastVersionSeen from state, or null>"
+
+## Fetch
+- github-releases: gh api "repos/<url>/releases?per_page=100" --paginate
+- rss/atom: curl -sL "<url>"
+- html: curl -sL "<url>"
+
+If fetch fails: output {"error":"fetch failed: <reason>","tool":"<name>","items":[],"excluded":[],"latestVersion":null}
+
+## Parse
+Extract per entry: version, date (YYYY-MM-DD), and item strings from the body.
+- github-releases: tag_name=version, published_at=date, body=items
+- rss/atom: <title>=version, <pubDate>/<updated>=date
+- Each bullet point is ONE item even if it spans multiple lines — join wrapped lines with a space, do NOT split at newlines within a bullet. Strip backticks from code spans.
+
+## Filter by version/date floor
+- github-releases: keep entries where version > LAST_VERSION_SEEN (numeric semver)
+- rss/html: keep entries where date >= CUTOFF_ISO
+
+## Score relevance (0–10)
+Hard exclude (score 0): PowerShell, Windows-only, .exe, WSL, JetBrains, [VSCode], [IDE], [JetBrains], [Windows], [Cursor].
+- Matches preferences.interests: 5–10
+- Matches preferences.ignore entries: 0–2
+- Score < 4: goes into excluded with short reason
+
+## Extract links
+If item markdown has [text](url), set link=url, strip markdown from text.
+
+## Output — raw JSON object, nothing else:
+{
+  "tool": "<TOOL_CONFIG.name>",
+  "latestVersion": "<newest version in FULL feed>",
+  "items": [{"text":"...","version":"2.1.163","date":"2026-06-05","type":"new|improved|fix","relevance":8,"topic":"<from preferences.topics>"}],
+  "excluded": [{"text":"...","version":"...","reason":"..."}]
+}
+- topic: best-fit from preferences.topics, "Misc" last
+- link: only if extracted, omit field if none
+- excluded: always present, [] if none
 ```
 
 ---
 
 ## Step 2.5: Format all results in parallel
 
-For each fetcher result from Step 2, dispatch one Agent using `${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/agents/result-formatter.md`.
-
-**Dispatch ALL formatter agents in a single message** so they run in parallel.
+For each fetcher result from Step 2, dispatch one Agent. **All in a single message.**
 
 Each formatter prompt:
+
 ```
+You are a JSON formatter. Convert the RAW data below into the canonical schema.
+Output ONLY the JSON array — no markdown, no explanation, nothing else.
+
 RAW: <paste the raw JSON object returned by the fetcher>
 ACTIVE_FILTERS: <paste the preferences.ignore array from this tool's TOOL_CONFIG>
 
-Convert to canonical schema following your instructions. Output ONLY the JSON array.
-```
+Output schema:
+[{
+  "tool": "<RAW.tool>",
+  "versionRange": {"from":"<oldest version>","to":"<newest version>","fromDate":"YYYY-MM-DD","toDate":"YYYY-MM-DD"},
+  "topics": [{"name":"<topic>","items":[{"text":"...","version":"...","type":"new|improved|fix","relevance":8}]}],
+  "excluded": [{"text":"...","version":"...","reason":"..."}],
+  "activeFilters": ["<each string from ACTIVE_FILTERS verbatim>"],
+  "latestVersion": "<RAW.latestVersion>",
+  "error": null
+}]
 
-If a fetcher returned an error object (has `"error"` field set), still pass it to the formatter — it knows how to handle errors.
+Rules:
+- Group RAW.items by topic field. Sort within each topic: new first, improved, fix last.
+- Only include topics with items. Put Misc last.
+- versionRange: from oldest to newest item by date. Empty string if no items.
+- excluded: copy from RAW.excluded, always present.
+- If RAW.error is set: return [{"tool":"<RAW.tool>","error":"<RAW.error>","topics":[],"excluded":[],"activeFilters":[],"latestVersion":null}]
+- Strip leading v from versionRange.from/to (keep original strings in item version fields).
+```
 
 ---
 
 ## Step 3: Validate and merge results
 
-Collect all formatter results. For each result:
-1. Strip any markdown code fences if present — parse the JSON inside
-2. If result is not valid JSON: create `{"tool": "<tool name>", "error": "invalid JSON response", "topics": [], "excluded": [], "latestVersion": null}`
-3. Validate: result must have `tool`, `topics` (array), and `latestVersion` fields
+Collect all formatter results. For each:
+1. Strip markdown code fences if present, parse JSON
+2. If invalid JSON: create `{"tool":"<name>","error":"invalid JSON","topics":[],"excluded":[],"latestVersion":null}`
+3. Validate: must have `tool`, `topics` (array), `latestVersion`
 
-Count total items across all valid results (sum of all items in all topics).
-
-If total items = 0 AND no errors → print: **"All caught up! No new entries since last check."** and stop.
-
-If total items = 0 BUT some tools errored → proceed to render (error cards will show).
+Count total items. If 0 AND no errors → **"All caught up!"** and stop. If 0 BUT errors → proceed to render.
 
 ---
 
 ## Step 4: Render digest
 
-**Write** the merged results JSON array to `~/.claude/feed-digest/output/.feed-input-tmp.json` using the Write tool (do NOT use echo/bash — large JSON gets truncated in shell). Then pipe to the render script:
+**Write** merged JSON array to `~/.claude/feed-digest/output/.feed-input-tmp.json` using the Write tool. Then:
 
 ```bash
-cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs
+cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ~/.claude/skills/changelog-feed/scripts/render.mjs
 ```
 
-Note: the render script binds a local port for the mark-read server — this requires `dangerouslyDisableSandbox: true`.
+Requires `dangerouslyDisableSandbox: true` (render script binds a local port).
 
-The script writes to `~/.claude/feed-digest/output/feed-digest-YYYY-MM-DD.html` and opens it in the browser.
+Writes to `~/.claude/feed-digest/output/feed-digest-YYYY-MM-DD.html` and opens in browser.
 
 ---
 
 ## Step 5: State is handled by the digest
 
-**Do not write state files.** The render script spawns a background mark-read server. State is updated only when the user clicks **"Mark as Read"** in the digest.
+**Do not write state files.** Mark-read server is spawned by the render script. State updates only when user clicks "Mark as Read".
 
-Exception: if `HISTORICAL_MODE = true`, the mark-read button is hidden and state is never updated (by design).
+Exception: `HISTORICAL_MODE = true` → mark-read button hidden, state never updated.
 
 ---
 
 ## Step 6: Report to user
 
-Tell the user: **"Opened digest — N new items across M tools. Versions covered: [tool: vX→vY, ...]"**
+**"Opened digest — N new items across M tools. Versions covered: [tool: vX→vY, ...]"**
 
-If any tools errored: also mention "⚠ [tool-name] failed to fetch — will retry next run."
+If errors: "⚠ [tool-name] failed to fetch — will retry next run."
