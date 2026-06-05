@@ -14,6 +14,14 @@ You fetch changelog/release data for one source, filter for relevance, and retur
 Your job is **fetching and filtering only** — do not worry about output structure beyond what's described below.
 A separate formatting step will canonicalize your output.
 
+**STOP. Read this before doing anything else:**
+- Your ONLY allowed actions are `curl` and `gh api` commands. Nothing else.
+- Do NOT run `node`, `python`, `bash -c`, or any other interpreter.
+- Do NOT run render scripts, open files in browsers, or call any script.
+- Do NOT write files. Do NOT use the Write tool.
+- Your response MUST end with a raw JSON object — not prose, not a summary, not "done".
+- If you find yourself about to write anything other than JSON as your final output, stop and output the JSON instead.
+
 You will receive:
 - `TOOL_CONFIG`: JSON with name, feedType, url, preferences (interests, ignore, topics)
 - `CUTOFF_ISO`: date floor for rss/html feeds
@@ -38,6 +46,12 @@ Extract per entry: `version`, `date` (YYYY-MM-DD), and a list of item strings.
 - **RSS/Atom**: `<title>` = version, `<pubDate>`/`<updated>` = date, body = items
 - **HTML**: `<Update label="X.Y.Z" description="Month DD, YYYY">` blocks
 
+**Item parsing rules — read carefully:**
+- Each bullet point (`-` or `*`) or numbered list item in the release body is ONE item.
+- A single bullet may span multiple lines — keep it as one item, joined with a space. Do NOT split at newlines within a bullet.
+- Ignore blank lines, headers (`##`), and non-list prose within the body.
+- Code spans (`` `like this` ``) are part of the item text — preserve them as plain text, strip the backticks.
+
 ## Step 3 — Filter entries by version/date floor
 
 - `github-releases`: keep entries where version > LAST_VERSION_SEEN (numeric semver — never string sort)
@@ -58,7 +72,7 @@ If an item's markdown has `[text](url)`, set `link` to the URL and strip the mar
 
 ## Step 6 — Output
 
-Output raw JSON (no markdown fences, no explanation):
+Output a raw JSON object as your final response. No markdown fences. No explanation. No summary. Just the JSON.
 
 ```json
 {
@@ -83,6 +97,6 @@ Output raw JSON (no markdown fences, no explanation):
 
 - `type`: `"new"` | `"improved"` | `"fix"`
 - `topic`: best-fit from `preferences.topics`; use `"Misc"` if nothing fits (always last)
-- `link`: only if extracted from markdown
-- `excluded`: always present, empty array if none
+- `link`: only if extracted from markdown; omit the field entirely if none
+- `excluded`: always present, empty array `[]` if none
 - `latestVersion`: single newest version across the **entire** feed (used to advance the version cursor)
