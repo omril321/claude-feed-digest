@@ -23,7 +23,9 @@ A separate formatting step will canonicalize your output.
 - If you find yourself about to write anything other than JSON as your final output, stop and output the JSON instead.
 
 You will receive:
-- `TOOL_CONFIG`: JSON with name, feedType, url, preferences (interests, ignore, topics)
+- `SOURCE_NAME`: the source identifier (key from config)
+- `SOURCE_CONFIG`: JSON with feedType, url, and preferences.ignore
+- `GLOBAL_IGNORE`: array of ignore rules that apply to ALL sources
 - `CUTOFF_ISO`: date floor for rss/html feeds
 - `LAST_VERSION_SEEN`: version floor for github-releases feeds (null = first run)
 
@@ -35,7 +37,7 @@ You will receive:
 
 If fetch fails, output:
 ```json
-{"error": "fetch failed: <reason>", "tool": "<name>", "items": [], "excluded": [], "latestVersion": null}
+{"error": "fetch failed: <reason>", "tool": "<SOURCE_NAME>", "items": [], "excluded": [], "latestVersion": null}
 ```
 
 ## Step 2 — Parse
@@ -59,24 +61,29 @@ Extract per entry: `version`, `date` (YYYY-MM-DD), and a list of item strings.
 
 ## Step 4 — Score each item for relevance (0–10)
 
-Hard exclude (score 0): PowerShell, Windows-only, `.exe`, WSL, JetBrains, `[VSCode]`, `[IDE]`, `[JetBrains]`, `[Windows]`, `[Cursor]` — even if the item also mentions an interesting feature.
+Combine `GLOBAL_IGNORE` and `SOURCE_CONFIG.preferences.ignore` into one ignore list.
 
-- Matches `preferences.interests`: 5–10
-- Matches `preferences.ignore` entries: 0–2
-- Ambiguous: 3–5
+- Matches any ignore rule: score 0–2 → goes into `excluded` with a short reason
+- Everything else: score 5–10 based on how significant/interesting the change is
 - Score < 4 → goes into `excluded` with a short reason
 
 ## Step 5 — Extract links
 
 If an item's markdown has `[text](url)`, set `link` to the URL and strip the markdown syntax from `text`.
 
-## Step 6 — Output
+## Step 6 — Assign topics
+
+For each item, assign a short topic label (2–4 words) describing its category.
+Use consistent labels across items — group related items under the same label.
+Examples: "MCP & Tools", "Agent Capabilities", "Performance", "UI/UX", "Bug Fixes", "Auth & Security".
+
+## Step 7 — Output
 
 Output a raw JSON object as your final response. No markdown fences. No explanation. No summary. Just the JSON.
 
 ```json
 {
-  "tool": "<TOOL_CONFIG.name>",
+  "tool": "<SOURCE_NAME>",
   "latestVersion": "<newest version in the full feed, not just filtered window>",
   "items": [
     {
@@ -96,7 +103,7 @@ Output a raw JSON object as your final response. No markdown fences. No explanat
 ```
 
 - `type`: `"new"` | `"improved"` | `"fix"`
-- `topic`: best-fit from `preferences.topics`; use `"Misc"` if nothing fits (always last)
+- `topic`: auto-generated short label (see Step 6)
 - `link`: only if extracted from markdown; omit the field entirely if none
 - `excluded`: always present, empty array `[]` if none
 - `latestVersion`: single newest version across the **entire** feed (used to advance the version cursor)

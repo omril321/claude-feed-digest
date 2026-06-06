@@ -1,33 +1,21 @@
 {
-  "tools": [
-    {
-      "name": "claude-code",
+  "preferences": {
+    "ignore": [
+      "Windows or WSL specific — including PowerShell, .exe, WSL, Windows paths",
+      "JetBrains plugin",
+      "VSCode, Cursor, or Windsurf IDE-specific",
+      "items prefixed with [VSCode], [IDE], [JetBrains], or [Windows]"
+    ]
+  },
+  "sources": {
+    "claude-code": {
       "enabled": true,
       "feedType": "github-releases",
       "url": "anthropics/claude-code",
       "maxFirstRunDays": 3,
       "preferences": {
-        "platform": "mac",
-        "interests": [
-          "new features",
-          "performance improvements",
-          "MCP and tool use",
-          "agent capabilities"
-        ],
-        "ignore": [
-          "Windows or WSL specific",
-          "JetBrains plugin",
-          "VSCode, Cursor, or Windsurf IDE-specific",
-          "fast mode"
-        ],
-        "topics": [
-          "MCP & Tools",
-          "Agents",
-          "Performance",
-          "UI/UX",
-          "Misc"
-        ]
+        "ignore": []
       }
     }
-  ]
+  }
 }

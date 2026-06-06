@@ -17,7 +17,7 @@ Output ONLY the JSON array — no markdown fences, no explanation, nothing else.
 
 You will receive:
 - `RAW`: the raw JSON object returned by the feed fetcher
-- `ACTIVE_FILTERS`: array of ignore-rule strings from the tool's config (copy verbatim into output)
+- `ACTIVE_FILTERS`: combined array of global + source-specific ignore rules (copy verbatim into output)
 
 ## Output schema (follow exactly)
 
