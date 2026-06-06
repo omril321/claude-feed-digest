@@ -17,7 +17,8 @@ Output ONLY the JSON array — no markdown fences, no explanation, nothing else.
 
 You will receive:
 - `RAW`: the raw JSON object returned by the feed fetcher
-- `ACTIVE_FILTERS`: combined array of global + source-specific ignore rules (copy verbatim into output)
+- `GLOBAL_FILTERS`: array of user-level ignore rules that apply to all sources (copy verbatim into output)
+- `SOURCE_FILTERS`: array of source-specific ignore rules (copy verbatim into output)
 
 ## Output schema (follow exactly)
 
@@ -47,7 +48,8 @@ You will receive:
   "excluded": [
     {"text": "<text>", "version": "<version>", "reason": "<reason>"}
   ],
-  "activeFilters": ["<each string from ACTIVE_FILTERS verbatim>"],
+  "globalFilters": ["<each string from GLOBAL_FILTERS verbatim>"],
+  "sourceFilters": ["<each string from SOURCE_FILTERS verbatim>"],
   "latestVersion": "<RAW.latestVersion>",
   "error": null
 }]
@@ -60,7 +62,8 @@ You will receive:
 - Only include topics that have at least one item. Put `"Misc"` last.
 - `versionRange`: derive from oldest/newest version+date among `RAW.items`. If `RAW.items` is empty, set both from/to and fromDate/toDate to `""`.
 - `excluded`: copy directly from `RAW.excluded`. Always present (empty array `[]` if none).
-- `activeFilters`: copy `ACTIVE_FILTERS` verbatim.
+- `globalFilters`: copy `GLOBAL_FILTERS` verbatim.
+- `sourceFilters`: copy `SOURCE_FILTERS` verbatim.
 - `latestVersion`: copy from `RAW.latestVersion`.
-- If `RAW.error` is set: return `[{"tool": "<RAW.tool>", "error": "<RAW.error>", "topics": [], "excluded": [], "activeFilters": [], "latestVersion": null}]`
+- If `RAW.error` is set: return `[{"tool": "<RAW.tool>", "error": "<RAW.error>", "topics": [], "excluded": [], "globalFilters": [], "sourceFilters": [], "latestVersion": null}]`
 - Strip `"v"` prefix from version strings in `versionRange.from`/`to` (keep original strings in item `version` fields).

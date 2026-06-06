@@ -57,15 +57,25 @@ export function buildTopicItemsHtml(items) {
 
 export function buildFilterSummaryHtml(results) {
   const filters = results
-    .flatMap(r => r.activeFilters || [])
+    .flatMap(r => r.globalFilters || [])
     .filter((f, i, arr) => arr.indexOf(f) === i); // dedupe
   if (filters.length === 0) return '';
   const itemsHtml = filters.map(f => `<li class="filter-item">${escapeHtml(f)}</li>`).join('');
   return `
   <details class="filter-summary">
-    <summary class="filter-summary__toggle">Active filters <span class="filter-summary__count">${filters.length}</span></summary>
+    <summary class="filter-summary__toggle">Global filters <span class="filter-summary__count">${filters.length}</span></summary>
     <ul class="filter-summary__list">${itemsHtml}</ul>
   </details>`;
+}
+
+export function buildSourceFilterHtml(sourceFilters) {
+  if (!sourceFilters || sourceFilters.length === 0) return '';
+  const itemsHtml = sourceFilters.map(f => `<li class="filter-item">${escapeHtml(f)}</li>`).join('');
+  return `
+    <details class="filter-summary filter-summary--source">
+      <summary class="filter-summary__toggle">Source filters <span class="filter-summary__count">${sourceFilters.length}</span></summary>
+      <ul class="filter-summary__list">${itemsHtml}</ul>
+    </details>`;
 }
 
 export function buildExcludedHtml(excluded, toolIndex) {
@@ -169,6 +179,7 @@ function renderToolSection(result, toolIndex) {
 
   const excluded = getExcluded(result);
   const excludedHtml = buildExcludedHtml(excluded, toolIndex);
+  const sourceFilterHtml = buildSourceFilterHtml(result.sourceFilters || []);
 
   const fromVer = versionRange?.from ? `v${String(versionRange.from).replace(/^v/, '')}` : '';
   const toVer   = versionRange?.to   ? `v${String(versionRange.to).replace(/^v/, '')}`   : '';
@@ -189,6 +200,7 @@ function renderToolSection(result, toolIndex) {
       <span class="tool-count">${allItems.length} item${allItems.length !== 1 ? 's' : ''}</span>
     </div>
     ${topicsHtml}
+    ${sourceFilterHtml}
     ${excludedHtml}
   </section>`;
 }

@@ -122,7 +122,8 @@ You are a JSON formatter. Convert the RAW data below into the canonical schema.
 Output ONLY the JSON array — no markdown, no explanation, nothing else.
 
 RAW: <paste the raw JSON object returned by the fetcher>
-ACTIVE_FILTERS: <combined array: [...config.preferences.ignore, ...(source.preferences.ignore || [])]>
+GLOBAL_FILTERS: <config.preferences.ignore array>
+SOURCE_FILTERS: <source.preferences.ignore array (or [] if none)>
 
 Output schema:
 [{
@@ -130,7 +131,8 @@ Output schema:
   "versionRange": {"from":"<oldest version>","to":"<newest version>","fromDate":"YYYY-MM-DD","toDate":"YYYY-MM-DD"},
   "topics": [{"name":"<topic>","items":[{"text":"...","version":"...","type":"new|improved|fix","relevance":8}]}],
   "excluded": [{"text":"...","version":"...","reason":"..."}],
-  "activeFilters": ["<each string from ACTIVE_FILTERS verbatim>"],
+  "globalFilters": ["<each string from GLOBAL_FILTERS verbatim>"],
+  "sourceFilters": ["<each string from SOURCE_FILTERS verbatim>"],
   "latestVersion": "<RAW.latestVersion>",
   "error": null
 }]
@@ -140,7 +142,7 @@ Rules:
 - Only include topics with items. Put Misc last.
 - versionRange: from oldest to newest item by date. Empty string if no items.
 - excluded: copy from RAW.excluded, always present.
-- If RAW.error is set: return [{"tool":"<RAW.tool>","error":"<RAW.error>","topics":[],"excluded":[],"activeFilters":[],"latestVersion":null}]
+- If RAW.error is set: return [{"tool":"<RAW.tool>","error":"<RAW.error>","topics":[],"excluded":[],"globalFilters":[],"sourceFilters":[],"latestVersion":null}]
 - Strip leading v from versionRange.from/to (keep original strings in item version fields).
 ```
 
