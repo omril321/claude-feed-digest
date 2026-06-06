@@ -4,6 +4,7 @@
 
 import { createServer } from 'http';
 import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import { STATE_DIR } from './paths.mjs';
 const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
