@@ -36,23 +36,38 @@ Or say: "check changelogs", "what's new in my tools", "tool updates".
 
 Config lives at `~/.claude/feed-digest/config.json` — **user-owned and git-trackable** in your dotfiles. On first run the plugin seeds it from the bundled `config.default.json`.
 
-The config is a JSON object with a `tools` array. Each entry:
+The config has two top-level keys:
 
 ```json
 {
-  "name": "my-tool",
-  "enabled": true,
-  "feedType": "github-releases",
-  "url": "owner/repo",
-  "maxFirstRunDays": 7,
   "preferences": {
-    "platform": "mac",
-    "interests": ["new features", "performance improvements"],
-    "ignore": ["Windows-specific", "items prefixed with [Windows]"],
-    "topics": ["Core", "UI/UX", "Bug Fixes", "Misc"]
+    "ignore": [
+      "Windows or WSL specific",
+      "JetBrains plugin",
+      "VSCode, Cursor, or Windsurf IDE-specific"
+    ]
+  },
+  "sources": {
+    "my-tool": {
+      "enabled": true,
+      "feedType": "github-releases",
+      "url": "owner/repo",
+      "maxFirstRunDays": 7,
+      "preferences": {
+        "ignore": ["feature X — not relevant to my setup"]
+      }
+    }
   }
 }
 ```
+
+### Two levels of filtering
+
+**Global** (`preferences.ignore`) — applies to every source. Put things that are never relevant to you regardless of tool: OS-specific items, IDE integrations you don't use, etc.
+
+**Per-source** (`sources.<name>.preferences.ignore`) — applies only to that source. Put things that are specific to one tool's context.
+
+Topics are **auto-generated** — the fetcher assigns short labels (e.g. "MCP & Tools", "Performance", "Bug Fixes") per item. No config needed.
 
 ### `feedType` options
 
@@ -62,32 +77,27 @@ The config is a JSON object with a `tools` array. Each entry:
 | `rss` or `atom` | RSS/Atom feed | full URL |
 | `html` | HTML changelog page | full URL |
 
-### `preferences`
-
-- **`interests`**: what you care about. Items matching these score higher and are included.
-- **`ignore`**: what to exclude. Matching items are filtered out (shown collapsed in the digest).
-- **`topics`**: groupings shown in the digest. Items are LLM-assigned to the best-fit topic. Put `"Misc"` last as a catch-all.
-- **`platform`**: informs filtering (e.g. `"mac"` — Windows-specific items ignored by default).
-
 ### Adding a source
 
-Any tool with a GitHub repo, RSS feed, or HTML changelog page works. Example — adding [Plannotator](https://github.com/backnotprop/plannotator):
+Any tool with a GitHub repo, RSS feed, or HTML changelog page works. Add an entry under `sources`. Example — adding [Plannotator](https://github.com/backnotprop/plannotator):
 
 ```json
 {
-  "name": "plannotator",
-  "enabled": true,
-  "feedType": "github-releases",
-  "url": "backnotprop/plannotator",
-  "maxFirstRunDays": 7,
-  "preferences": {
-    "platform": "mac",
-    "interests": ["new features", "UI/UX improvements", "bug fixes"],
-    "ignore": ["Windows-specific"],
-    "topics": ["Core", "UI/UX", "Bug Fixes", "Misc"]
+  "sources": {
+    "plannotator": {
+      "enabled": true,
+      "feedType": "github-releases",
+      "url": "backnotprop/plannotator",
+      "maxFirstRunDays": 7,
+      "preferences": {
+        "ignore": []
+      }
+    }
   }
 }
 ```
+
+To temporarily mute a source without removing it, set `"enabled": false`.
 
 ## How it works
 
