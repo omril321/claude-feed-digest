@@ -6,7 +6,7 @@ description: >
   are shown on each run. Use when user says /feed-digest, /changelog-feed, "check changelogs",
   "what's new in my tools", or "tool updates".
 invocation: user
-allowed-tools: Bash(node ~/.claude/skills/changelog-feed/scripts/fetchers/github-releases.mjs *), Bash(cat *), Bash(node ~/.claude/skills/changelog-feed/scripts/render.mjs), Bash(node ~/.claude/skills/changelog-feed/scripts/render.mjs *), Bash(open *), Read, Write, Agent
+allowed-tools: Bash(node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/fetchers/github-releases.mjs *), Bash(cat *), Bash(node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs), Bash(node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs *), Bash(open *), Read, Write, Agent
 ---
 
 # Feed Digest
