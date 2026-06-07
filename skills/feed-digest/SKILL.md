@@ -88,35 +88,15 @@ Store each output as `parsed_<source-name>.json` temp file for Step 3.
 
 ## Step 3: Score and format all results in parallel
 
-For each parsed result from Step 2, dispatch one Haiku Agent. **All in a single message.**
+For each parsed result from Step 2, dispatch one `feed-scorer` Agent. **All in a single message.**
 
-Each scorer prompt:
+Use `subagent_type: feed-scorer` (defined in `agents/feed-scorer.md`). Each scorer prompt:
 
 ```
 SOURCE_NAME: "<source-name>"
-PARSED_RELEASES: <paste the releases array from step 2 output>
+PARSED_RELEASES: <paste the full releases array from step 2 output — ALL releases, not just the first few>
 GLOBAL_FILTERS: <config.preferences.ignore array>
 SOURCE_FILTERS: <source.preferences.ignore array (or [] if none)>
-
-Score each item for relevance (0–10):
-- Matches any ignore rule: 0–2, add to excluded with reason
-- Everything else: 5–10 based on significance
-- Score < 4: goes to excluded
-
-Assign each item a 2–4 word topic label (e.g., "MCP & Tools", "Performance", "Bug Fixes").
-Use consistent labels across items.
-
-Output ONLY this JSON object (no markdown, no explanation):
-{
-  "tool": "<SOURCE_NAME>",
-  "latestVersion": "<newest version from PARSED_RELEASES>",
-  "items": [
-    {"text":"...","version":"...","date":"YYYY-MM-DD","type":"new|improved|fix","relevance":8,"topic":"<label>"}
-  ],
-  "excluded": [
-    {"text":"...","version":"...","reason":"..."}
-  ]
-}
 ```
 
 For each result:
