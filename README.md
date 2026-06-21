@@ -19,18 +19,41 @@ Each run opens an HTML page in your browser:
 
 ## Install
 
-```
-/plugin marketplace add omril321/claude-feed-digest
-/plugin install feed-digest@feed-digest
-```
-
-Then run it:
-
-```
-/feed-digest
+```bash
+git clone https://github.com/omril321/claude-feed-digest
+cd claude-feed-digest
+yarn install
 ```
 
-Or say: "check changelogs", "what's new in my tools", "tool updates".
+## Usage
+
+Run the digest in your current terminal:
+
+```bash
+node src/index.mjs
+```
+
+Pass flags to override the version cursor:
+
+```bash
+node src/index.mjs --since "last week"
+node src/index.mjs --since v2.1.100
+node src/index.mjs --historical
+```
+
+By default, `--historical` runs read-only (no state change). To query back 7 days from now without updating state:
+
+```bash
+node src/index.mjs --since "last week"
+```
+
+To jump to a specific version:
+
+```bash
+node src/index.mjs --since v2.1.100
+```
+
+Each run opens an HTML page in your browser and prints the item count to console.
 
 ## Config
 
@@ -101,15 +124,15 @@ To temporarily mute a source without removing it, set `"enabled": false`.
 
 ## How it works
 
-feed-digest uses a **two-stage subagent pipeline** designed for reliability and low cost:
+feed-digest runs a **two-stage subagent pipeline** via the Anthropic Vertex SDK, designed for reliability and cost-efficiency:
 
 ### Stage 1 — Fetch (one agent per source, in parallel)
 
-Each source gets its own **fetcher agent** (Claude Sonnet, up to 8 turns). Its only job is to fetch the feed and filter for relevance — no schema pressure. It runs `curl` or `gh api`, scores each item 0–10 against your `interests`/`ignore` lists, excludes items scoring < 4, and returns loose JSON. Because it doesn't have to care about output structure, it can focus entirely on data quality.
+Each source gets its own **fetcher agent** (Claude Sonnet, up to 8 turns). It fetches the feed and filters for relevance using `curl` or `gh api`, scores each item 0–10 against your `preferences.ignore` lists, excludes items scoring < 4, and returns structured JSON.
 
-### Stage 2 — Format (one agent per result, in parallel)
+### Stage 2 — Score & Format
 
-Each fetcher result is immediately handed to a **formatter agent** (Claude Haiku, 1 turn, no tools). Its only job is structural: convert the fetcher's loose output into the exact canonical schema the renderer expects. Single-shot, deterministic, cheap. Separating this concern means schema compliance doesn't compete with data collection.
+Each fetcher result is handed to a **scoring agent** (Claude Haiku, 1 turn, no tools). It validates the JSON, assigns topic labels, and returns the exact canonical schema the renderer expects.
 
 ### Render
 
@@ -117,29 +140,30 @@ The formatted results are merged and piped to a local Node.js renderer that prod
 
 ## Requirements
 
-- Claude Code **v2.1.154 or later** (plugin support + subagent model selection)
+- Node.js 18+
 - `gh` CLI authenticated (for `github-releases` sources)
 - macOS (`open` is used to launch the HTML in your browser)
+- GCP credentials for Vertex AI: `ANTHROPIC_VERTEX_PROJECT_ID` and `CLOUD_ML_REGION` env vars set
 
 ## State & output
 
 | Location | What |
 |---|---|
 | `~/.claude/feed-digest/config.json` | Your config (user-owned, git-trackable) |
-| `~/.claude/plugins/data/feed-digest-feed-digest/state/` | Per-tool version cursors |
-| `~/.claude/plugins/data/feed-digest-feed-digest/output/` | Generated HTML digests |
+| `~/.claude/feed-digest/state/` | Per-tool version cursors |
+| `/tmp` (macOS: `$TMPDIR`) | Generated HTML digests (temp files) |
 
 ## Local development
 
 ```bash
-# Load from local dir — no install needed
-claude --plugin-dir ~/path/to/claude-feed-digest
+# Run tests
+node src/renderer/render.test.mjs
 
-# After editing source files
-/reload-plugins
+# Run digest locally
+node src/index.mjs
 
-# Validate before publishing
-claude plugin validate ~/path/to/claude-feed-digest
+# Run with historical flags
+node src/index.mjs --since "last week"
 ```
 
 ## License
