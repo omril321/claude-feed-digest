@@ -49,6 +49,10 @@ async function main() {
       try {
         const state = loadSourceState(name);
         const cutoff = sinceOverride ?? computeCutoff(src, state);
+        if (src.feedType !== 'github-releases') {
+          console.error(`⚠ ${name}: feedType "${src.feedType}" is not yet supported — skipping`);
+          return { name, error: `feedType "${src.feedType}" not yet supported`, src };
+        }
         const data = await fetchGithubReleases({
           url: src.url,
           tagPrefix: src.tagPrefix ?? null,

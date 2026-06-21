@@ -7,7 +7,8 @@ export function loadConfig() {
   if (!existsSync(configPath)) {
     throw new Error(
       `Config not found at ${configPath}.\n` +
-      `Copy skills/feed-digest/config.default.json to that path and edit it.`
+      `Copy src/config/config.default.json to that path and edit it:\n` +
+      `  cp src/config/config.default.json ${configPath}`
     );
   }
   return JSON.parse(readFileSync(configPath, 'utf8'));

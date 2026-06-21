@@ -32,14 +32,14 @@ function parseReleaseBody(body) {
 }
 
 function ghFetchReleases(url) {
-  const result = spawnSync('gh', ['api', `repos/${url}/releases?per_page=100`, '--paginate'], {
+  const result = spawnSync('gh', ['api', `repos/${url}/releases?per_page=100`, '--paginate', '--slurp'], {
     encoding: 'utf8',
     stdio: ['pipe', 'pipe', 'pipe'],
     maxBuffer: 50 * 1024 * 1024,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(result.stderr || 'gh command failed');
-  return JSON.parse(result.stdout);
+  return JSON.parse(result.stdout).flat();
 }
 
 export async function fetchGithubReleases({ url, tagPrefix = null, lastVersion = null }) {
