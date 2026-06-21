@@ -1,9 +1,15 @@
 import AnthropicVertex from '@anthropic-ai/vertex-sdk';
 
-const client = new AnthropicVertex({
-  projectId: process.env.ANTHROPIC_VERTEX_PROJECT_ID,
-  region: process.env.CLOUD_ML_REGION,
-});
+let _client = null;
+function getClient() {
+  if (!_client) {
+    _client = new AnthropicVertex({
+      projectId: process.env.ANTHROPIC_VERTEX_PROJECT_ID,
+      region: process.env.CLOUD_ML_REGION,
+    });
+  }
+  return _client;
+}
 
 export function inferType(text) {
   const t = text.toLowerCase();
@@ -119,14 +125,29 @@ export async function scoreSource({ sourceName, parsedReleases, globalFilters, s
 
   const prompt = buildPrompt({ sourceName, flatItems, globalFilters, sourceFilters });
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: 'claude-haiku-4-5@20251001',
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const raw = response.content[0].text.trim();
-  const scored = JSON.parse(raw);
+  const rawText = response.content[0].text.trim();
+  const stripped = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  let scored;
+  try {
+    scored = JSON.parse(stripped);
+  } catch {
+    console.warn(`[scorer] Failed to parse LLM response for ${sourceName}:`, rawText.slice(0, 200));
+    return {
+      tool: sourceName,
+      latestVersion: parsedReleases[0]?.version ?? null,
+      versionRange: buildVersionRange(parsedReleases),
+      globalFilters,
+      sourceFilters,
+      topics: [],
+      excluded: [],
+    };
+  }
 
   return buildCanonicalSchema({ sourceName, parsedReleases, flatItems, scored, globalFilters, sourceFilters });
 }
