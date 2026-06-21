@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@anthropic-ai/sdk@>=0.35 <1":
+"@anthropic-ai/sdk@>=0.50.3 <1":
   version "0.105.0"
   resolved "https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.105.0.tgz#04bace25c7fe728b073fe30d0a8663df81b8d482"
   integrity sha512-sDyu+aM9cE6uZE+HgRjjHRb+qqb87GHZOx+8bE0YlWetdL1YcVLxn8h9ltxGOflyChTe6PMEo50kMQV4cw0hfg==
@@ -10,12 +10,12 @@
     json-schema-to-ts "^3.1.1"
     standardwebhooks "^1.0.0"
 
-"@anthropic-ai/vertex-sdk@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.npmjs.org/@anthropic-ai/vertex-sdk/-/vertex-sdk-0.7.0.tgz#92d6ae344553cc26999991bfad93d4afbc9e8a48"
-  integrity sha512-zNm3hUXgYmYDTyveIxOyxbcnh5VXFkrLo4bSnG6LAfGzW7k3k2iCNDSVKtR9qZrK2BCid7JtVu7jsEKaZ/9dSw==
+"@anthropic-ai/vertex-sdk@^0.18.0":
+  version "0.18.0"
+  resolved "https://registry.npmjs.org/@anthropic-ai/vertex-sdk/-/vertex-sdk-0.18.0.tgz#70a498c2b70e0cec2a9854bdd6d38c9d2e82edf5"
+  integrity sha512-o79bEmNwfRyq8Pv1X4P7zXfvOPmNBnzzg3TtchyWqy0mpxtTYQoEMJUHCJXQYEYdHyZKnt3bIGxbPCNiBcDY7Q==
   dependencies:
-    "@anthropic-ai/sdk" ">=0.35 <1"
+    "@anthropic-ai/sdk" ">=0.50.3 <1"
     google-auth-library "^9.4.2"
 
 "@babel/runtime@^7.18.3":
