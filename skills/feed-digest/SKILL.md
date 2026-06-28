@@ -36,7 +36,7 @@ If no override detected, proceed normally (Step 1 onwards).
 
 Read `~/.claude/feed-digest/config.json`. If the file does not exist, seed it first:
 ```bash
-mkdir -p ~/.claude/feed-digest && cp ~/.claude/skills/changelog-feed/config.default.json ~/.claude/feed-digest/config.json
+mkdir -p ~/.claude/feed-digest && cp ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/config.default.json ~/.claude/feed-digest/config.json
 ```
 
 Config has two top-level keys: `preferences` (global ignore rules) and `sources` (object keyed by source name).
@@ -64,9 +64,9 @@ node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/fetchers/github-releases.m
 
 Example calls (all in one batch):
 ```bash
-node ~/.claude/skills/changelog-feed/scripts/fetchers/github-releases.mjs anthropics/claude-code --last-version 2.1.160
-node ~/.claude/skills/changelog-feed/scripts/fetchers/github-releases.mjs superset-sh/superset --tag-prefix desktop-v --last-version desktop-v1.12.1
-node ~/.claude/skills/changelog-feed/scripts/fetchers/github-releases.mjs backnotprop/plannotator --last-version v0.19.26
+node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/fetchers/github-releases.mjs anthropics/claude-code --last-version 2.1.160
+node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/fetchers/github-releases.mjs superset-sh/superset --tag-prefix desktop-v --last-version desktop-v1.12.1
+node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/fetchers/github-releases.mjs backnotprop/plannotator --last-version v0.19.26
 ```
 
 Each script outputs:
@@ -143,7 +143,7 @@ Count total items across all tools. If 0 AND no errors → **"All caught up!"** 
 **Write** merged JSON array to `~/.claude/feed-digest/output/.feed-input-tmp.json` using the Write tool. Then:
 
 ```bash
-cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ~/.claude/skills/changelog-feed/scripts/render.mjs
+cat ~/.claude/feed-digest/output/.feed-input-tmp.json | node ${CLAUDE_PLUGIN_ROOT}/skills/feed-digest/scripts/render.mjs
 ```
 
 Requires `dangerouslyDisableSandbox: true` (render script binds a local port).
